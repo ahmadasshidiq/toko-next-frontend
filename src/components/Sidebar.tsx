@@ -6,7 +6,7 @@ import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSidebar } from "@/components/AppShell";
 import { toast } from "sonner";
-import { ShoppingCart } from "lucide-react";
+import { HandCoins, ShoppingCart, Users } from "lucide-react";
 
 type NavItem =
   | {
@@ -79,6 +79,18 @@ export default function Sidebar() {
           { key: "merk", label: "Merk Produk", href: "/manage/product-brand" },
           { key: "barang", label: "Barang/Produk", href: "/manage/product" },
         ],
+      },
+      {
+        key: "membership",
+        label: "Membership",
+        href: "/membership",
+        icon: <Users className="h-5 w-5" />,
+      },
+      {
+        key: "kasbon",
+        label: "Kasbon",
+        href: "/kasbon",
+        icon: <HandCoins className="h-5 w-5" />,
       },
       {
         key: "pengguna",

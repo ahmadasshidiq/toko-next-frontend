@@ -10,14 +10,15 @@ export async function POST(req: Request) {
   const token = cookieStore.get("token")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const transaksi = await req.json();
+  // body: transaksi, opsional { ...transaksi, kasbon: {...} } untuk penjualan kasbon
+  const { kasbon, ...transaksi } = await req.json();
   const response = await fetch(`${process.env.API_BASE_URL}/sync/transaksi`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ pelanggan: [], transaksi: [transaksi], kasbon: [], rekapKas: [] }),
+    body: JSON.stringify({ pelanggan: [], transaksi: [transaksi], kasbon: kasbon ? [kasbon] : [], rekapKas: [] }),
   });
 
   const res = await response.json().catch(() => ({}));
@@ -28,10 +29,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const rejected = res?.data?.rejected ?? res?.data?.Rejected ?? [];
+  const rejected: { clientId: string; reason: string }[] = res?.data?.rejected ?? [];
+  const trxRejected = rejected.find((r) => r.clientId === transaksi.clientId);
+  if (trxRejected) {
+    return NextResponse.json({ error: trxRejected.reason ?? "Transaksi ditolak" }, { status: 422 });
+  }
+  // transaksi tersimpan tapi kasbon gagal: kirim ulang dengan clientId yang sama aman (idempotent)
   if (rejected.length) {
     return NextResponse.json(
-      { error: rejected[0]?.reason ?? rejected[0]?.Reason ?? "Transaksi ditolak" },
+      { error: `Transaksi tersimpan, tapi kasbon gagal: ${rejected[0].reason}` },
       { status: 422 }
     );
   }

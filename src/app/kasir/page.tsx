@@ -17,7 +17,12 @@ import {
   Printer,
   Loader2,
   PackageSearch,
+  UserPlus,
+  UserRound,
+  Star,
+  X,
 } from "lucide-react";
+import MemberFormModal, { type Member } from "@/components/MemberFormModal";
 import type { Stock } from "../manage/product/page";
 import type { Branch } from "../manage/branch/page";
 
@@ -32,6 +37,12 @@ type CartItem = {
   image?: string;
 };
 
+/** Aturan poin member: 1 poin untuk setiap kelipatan Rp 10.000 total belanja. */
+const RUPIAH_PER_POIN = 10_000;
+
+/** Status kasbon — sama dengan aplikasi mobile. */
+const KASBON_BELUM_LUNAS = "belum lunas";
+
 type Receipt = {
   noInvoice: string;
   date: string;
@@ -43,6 +54,9 @@ type Receipt = {
   total: number;
   bayar: number;
   kembalian: number;
+  kasbon: number;
+  memberId?: string;
+  poin: number;
 };
 
 const rupiah = (n: number) => `Rp ${Math.round(n || 0).toLocaleString("id-ID")}`;
@@ -81,9 +95,15 @@ export default function KasirPage() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [member, setMember] = useState<Member | null>(null);
+  const [memberOpen, setMemberOpen] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
   const [discountUnit, setDiscountUnit] = useState<"rp" | "%">("rp");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [bayar, setBayar] = useState(0);
+  const [metode, setMetode] = useState<"tunai" | "kasbon">("tunai");
+  const [kasbonNote, setKasbonNote] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   // dipakai ulang bila request gagal di tengah jalan, supaya tidak dobel tersimpan
@@ -139,9 +159,35 @@ export default function KasirPage() {
     return () => clearTimeout(t);
   }, [cabangId, search, handleUnauthorized]);
 
+  const fetchMembers = useCallback(async () => {
+    if (!cabangId) return;
+    try {
+      const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+      const result = await fetch(`/bff/membership?id=${user._id}&cabang=${cabangId}`);
+      if (!result.ok) return;
+      const res = await result.json();
+      setMembers(res.data ?? []);
+    } catch {
+      /* daftar member opsional untuk kasir */
+    }
+  }, [cabangId]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
+  const memberMatches = useMemo(() => {
+    const q = customer.trim().toLowerCase();
+    const list = q
+      ? members.filter((m) => [m.name, m.memberId, m.phone].some((v) => v?.toLowerCase().includes(q)))
+      : members;
+    return list.slice(0, 6);
+  }, [members, customer]);
+
   const changeBranch = (id: string) => {
     if (cart.length && !confirm("Ganti cabang akan mengosongkan keranjang. Lanjutkan?")) return;
     setCart([]);
+    setMember(null);
     setCabangId(id);
     localStorage.setItem("kasir:cabang", id);
   };
@@ -182,8 +228,16 @@ export default function KasirPage() {
     return Math.min(d, subTotal);
   }, [discountAmount, discountUnit, subTotal]);
   const total = subTotal - discount;
+  const isKasbon = metode === "kasbon";
   const kembalian = bayar - total;
+  const sisaKasbon = isKasbon ? Math.max(0, total - bayar) : 0;
+  const canPay =
+    cart.length > 0 &&
+    !!cabangId &&
+    (isKasbon ? !!member && bayar < total : bayar >= total);
   const itemCount = cart.reduce((a, i) => a + i.qty, 0);
+  // poin hanya dari bagian yang sudah dibayar
+  const poinEarned = member ? Math.floor(Math.min(bayar, total) / RUPIAH_PER_POIN) : 0;
 
   const quickCash = useMemo(() => {
     if (total <= 0) return [];
@@ -198,15 +252,20 @@ export default function KasirPage() {
   const resetSale = () => {
     setCart([]);
     setCustomer("");
+    setMember(null);
     setDiscountAmount(0);
     setBayar(0);
+    setMetode("tunai");
+    setKasbonNote("");
     pendingClientId.current = null;
     searchRef.current?.focus();
   };
 
   const pay = async () => {
     if (!cart.length) return toast.error("Keranjang masih kosong");
-    if (bayar < total) return toast.error("Jumlah bayar kurang dari total");
+    if (isKasbon && !member) return toast.error("Kasbon wajib memilih member");
+    if (isKasbon && bayar >= total) return toast.error("Uang muka kasbon harus kurang dari total");
+    if (!isKasbon && bayar < total) return toast.error("Jumlah bayar kurang dari total");
 
     setIsPaying(true);
     const clientId = (pendingClientId.current ??= newClientId());
@@ -221,14 +280,31 @@ export default function KasirPage() {
           clientId,
           noInvoice,
           cabangId,
-          name: customer.trim() || "Umum",
+          name: member?.name || customer.trim() || "Umum",
+          membershipsId: member?._id ?? "",
+          pelangganClientId: member && !member._id ? member.clientId ?? "" : "",
+          poin: poinEarned,
           date,
           discountName: discount ? "Diskon" : "",
           discountUnit: discount ? discountUnit : "",
           discountAmount: discount ? discountAmount : 0,
           jumlahPembayaran: bayar,
-          kembalian: bayar - total,
+          kembalian: isKasbon ? 0 : bayar - total,
           metode: "cash",
+          kasbon: isKasbon
+            ? {
+                // turunan dari clientId transaksi supaya kirim ulang tetap idempotent
+                clientId: `${clientId}-kasbon`,
+                cabangId,
+                membershipsId: member?._id ?? "",
+                pelangganClientId: member && !member._id ? member.clientId ?? "" : "",
+                memberId: member?.memberId ?? "",
+                transaksiClientId: clientId,
+                note: kasbonNote.trim(),
+                date,
+                status: KASBON_BELUM_LUNAS,
+              }
+            : undefined,
           items: cart.map((i) => ({
             stokId: i.stokId,
             produkId: i.produkId,
@@ -247,13 +323,16 @@ export default function KasirPage() {
         noInvoice,
         date: now.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
         cabang: branches.find((b) => b._id === cabangId)?.name ?? "",
-        name: customer.trim() || "Umum",
+        name: member?.name || customer.trim() || "Umum",
+        memberId: member?.memberId,
+        poin: poinEarned,
         items: cart,
         subTotal,
         discount,
         total,
         bayar,
-        kembalian: bayar - total,
+        kembalian: isKasbon ? 0 : bayar - total,
+        kasbon: sisaKasbon,
       });
       // kurangi stok di tampilan tanpa reload
       setProducts((ps) =>
@@ -262,8 +341,9 @@ export default function KasirPage() {
           return it ? { ...p, qty: p.qty - it.qty } : p;
         })
       );
+      if (member) fetchMembers();
       resetSale();
-      toast.success("Transaksi berhasil disimpan");
+      toast.success(isKasbon ? "Transaksi kasbon berhasil disimpan" : "Transaksi berhasil disimpan");
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -453,33 +533,113 @@ export default function KasirPage() {
             </div>
 
             <div className="space-y-3 border-t border-gray-100 px-5 py-4">
-              <input
-                value={customer}
-                onChange={(e) => setCustomer(e.target.value)}
-                placeholder="Nama pelanggan (opsional)"
-                className="h-9 w-full rounded-lg border border-gray-200 px-3 text-sm focus:border-jax-lime focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <div className="flex overflow-hidden rounded-lg border border-gray-200 text-xs font-medium">
-                  {(["rp", "%"] as const).map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      onClick={() => setDiscountUnit(u)}
-                      className={`px-3 ${discountUnit === u ? "bg-jax-lime text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
-                    >
-                      {u === "rp" ? "Rp" : "%"}
-                    </button>
-                  ))}
+              {/* Pelanggan / member */}
+              {member ? (
+                <div className="flex items-center gap-3 rounded-xl border border-jax-lime/30 bg-jax-lime/5 p-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-jax-lime to-jax-leaf text-sm font-semibold text-white">
+                    {member.name[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900">{member.name}</div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="truncate">{member.memberId || member.phone || "Member"}</span>
+                      <span className="inline-flex items-center gap-0.5 text-amber-600">
+                        <Star className="h-3 w-3" /> {(member.poin || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Hapus member"
+                    onClick={() => setMember(null)}
+                    className="rounded-lg p-1 text-gray-400 hover:bg-white hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
+              ) : (
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={customer}
+                    onChange={(e) => {
+                      setCustomer(e.target.value);
+                      setMemberOpen(true);
+                    }}
+                    onFocus={() => setMemberOpen(true)}
+                    onBlur={() => setTimeout(() => setMemberOpen(false), 150)}
+                    placeholder="Cari member / nama pelanggan"
+                    className="h-10 w-full rounded-lg border border-gray-200 pl-9 pr-3 text-sm focus:border-jax-lime focus:outline-none focus:ring-2 focus:ring-jax-lime/20"
+                  />
+                  {memberOpen && (
+                    <div className="absolute inset-x-0 bottom-full z-20 mb-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                      {memberMatches.map((m) => (
+                        <button
+                          key={m._id ?? m.clientId}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setMember(m);
+                            setCustomer("");
+                            setMemberOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-gray-50"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-gray-900">{m.name}</div>
+                            <div className="truncate text-xs text-gray-400">{[m.memberId, m.phone].filter(Boolean).join(" · ")}</div>
+                          </div>
+                          <span className="ml-2 inline-flex shrink-0 items-center gap-0.5 text-xs text-amber-600">
+                            <Star className="h-3 w-3" /> {(m.poin || 0).toLocaleString("id-ID")}
+                          </span>
+                        </button>
+                      ))}
+                      {!memberMatches.length && (
+                        <div className="px-3 py-2 text-xs text-gray-400">
+                          {members.length ? "Member tidak ditemukan" : "Belum ada member di cabang ini"}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setMemberOpen(false);
+                          setShowAddMember(true);
+                        }}
+                        className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2.5 text-sm font-medium text-jax-limeDark hover:bg-jax-lime/5"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        {customer.trim() ? `Daftarkan "${customer.trim()}" jadi member` : "Tambah member baru"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Diskon */}
+              <div className="relative">
                 <input
                   type="number"
                   min={0}
                   value={discountAmount || ""}
                   onChange={(e) => setDiscountAmount(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="Diskon"
-                  className="h-9 w-full rounded-lg border border-gray-200 px-3 text-sm focus:border-jax-lime focus:outline-none"
+                  placeholder={discountUnit === "rp" ? "Diskon (Rp)" : "Diskon (%)"}
+                  className="h-10 w-full rounded-lg border border-gray-200 pl-3 pr-24 text-sm [appearance:textfield] focus:border-jax-lime focus:outline-none focus:ring-2 focus:ring-jax-lime/20 [&::-webkit-inner-spin-button]:appearance-none"
                 />
+                <div className="absolute inset-y-1 right-1 flex rounded-md bg-gray-100 p-0.5">
+                  {(["rp", "%"] as const).map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setDiscountUnit(u)}
+                      className={`w-10 rounded text-xs font-semibold transition ${
+                        discountUnit === u ? "bg-white text-jax-limeDark shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {u === "rp" ? "Rp" : "%"}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-1 text-sm">
@@ -497,7 +657,39 @@ export default function KasirPage() {
                   <span className="font-medium text-gray-900">Total</span>
                   <span className="text-2xl font-bold tracking-tight text-gray-900">{rupiah(total)}</span>
                 </div>
+                {poinEarned > 0 && (
+                  <div className="flex justify-end">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+                      <Star className="h-3 w-3" /> +{poinEarned} poin untuk {member?.name}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Metode pembayaran */}
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
+                {(["tunai", "kasbon"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setMetode(m);
+                      setBayar(0);
+                    }}
+                    className={`h-8 rounded-md text-sm font-semibold transition ${
+                      metode === m ? "bg-white text-jax-limeDark shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {m === "tunai" ? "Tunai" : "Kasbon"}
+                  </button>
+                ))}
+              </div>
+
+              {isKasbon && !member && (
+                <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Kasbon hanya untuk member. Pilih atau daftarkan member di atas.
+                </div>
+              )}
 
               <div>
                 <div className="relative">
@@ -507,11 +699,12 @@ export default function KasirPage() {
                     min={0}
                     value={bayar || ""}
                     onChange={(e) => setBayar(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder="Jumlah bayar (tunai)"
-                    className="h-10 w-full rounded-lg border border-gray-200 pl-9 pr-3 text-sm font-medium focus:border-jax-lime focus:outline-none"
+                    placeholder={isKasbon ? "Uang muka (boleh 0)" : "Jumlah bayar (tunai)"}
+                    className="h-10 w-full rounded-lg border border-gray-200 pl-9 pr-3 text-sm font-medium [appearance:textfield] focus:border-jax-lime focus:outline-none focus:ring-2 focus:ring-jax-lime/20 [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
-                {quickCash.length > 0 && (
+
+                {!isKasbon && quickCash.length > 0 && (
                   <div className="mt-2 grid grid-cols-4 gap-1.5">
                     {quickCash.map((v, idx) => (
                       <button
@@ -529,24 +722,48 @@ export default function KasirPage() {
                     ))}
                   </div>
                 )}
-                {bayar > 0 && (
-                  <div className="mt-2 flex justify-between text-sm">
-                    <span className="text-gray-500">Kembalian</span>
-                    <span className={`font-semibold ${kembalian < 0 ? "text-red-500" : "text-jax-limeDark"}`}>
-                      {kembalian < 0 ? `Kurang ${rupiah(-kembalian)}` : rupiah(kembalian)}
-                    </span>
-                  </div>
+
+                {isKasbon ? (
+                  <>
+                    <input
+                      value={kasbonNote}
+                      onChange={(e) => setKasbonNote(e.target.value)}
+                      placeholder="Catatan kasbon (mis. bayar tgl 30)"
+                      className="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm focus:border-jax-lime focus:outline-none focus:ring-2 focus:ring-jax-lime/20"
+                    />
+                    {total > 0 && (
+                      <div className="mt-2 flex justify-between text-sm">
+                        <span className="text-gray-500">Sisa jadi kasbon</span>
+                        <span className={`font-semibold ${bayar >= total ? "text-red-500" : "text-amber-600"}`}>
+                          {bayar >= total ? "Uang muka ≥ total, pakai Tunai" : rupiah(sisaKasbon)}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  bayar > 0 && (
+                    <div className="mt-2 flex justify-between text-sm">
+                      <span className="text-gray-500">Kembalian</span>
+                      <span className={`font-semibold ${kembalian < 0 ? "text-red-500" : "text-jax-limeDark"}`}>
+                        {kembalian < 0 ? `Kurang ${rupiah(-kembalian)}` : rupiah(kembalian)}
+                      </span>
+                    </div>
+                  )
                 )}
               </div>
 
               <button
                 type="button"
                 onClick={pay}
-                disabled={!cart.length || bayar < total || isPaying || !cabangId}
+                disabled={!canPay || isPaying}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-jax-limeDark to-jax-lime text-base font-semibold text-white shadow-md shadow-jax-lime/20 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {isPaying ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                {isPaying ? "Memproses…" : `Bayar ${total > 0 ? rupiah(total) : ""}`}
+                {isPaying
+                  ? "Memproses…"
+                  : isKasbon
+                  ? `Simpan Kasbon ${sisaKasbon > 0 ? rupiah(sisaKasbon) : ""}`
+                  : `Bayar ${total > 0 ? rupiah(total) : ""}`}
               </button>
             </div>
           </div>
@@ -559,7 +776,9 @@ export default function KasirPage() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl print:max-w-none print:rounded-none print:shadow-none">
             <div className="text-center print:hidden">
               <CheckCircle2 className="mx-auto h-12 w-12 text-jax-lime" />
-              <div className="mt-2 text-lg font-semibold text-gray-900">Pembayaran Berhasil</div>
+              <div className="mt-2 text-lg font-semibold text-gray-900">
+                {receipt.kasbon > 0 ? "Kasbon Tersimpan" : "Pembayaran Berhasil"}
+              </div>
             </div>
 
             <div id="struk" className="mt-4 border-t border-dashed border-gray-300 pt-4 font-mono text-xs text-gray-700">
@@ -571,6 +790,9 @@ export default function KasirPage() {
                 <div className="flex justify-between"><span>No</span><span>{receipt.noInvoice}</span></div>
                 <div className="flex justify-between"><span>Tanggal</span><span>{receipt.date}</span></div>
                 <div className="flex justify-between"><span>Pelanggan</span><span>{receipt.name}</span></div>
+                {receipt.memberId && (
+                  <div className="flex justify-between"><span>No. Member</span><span>{receipt.memberId}</span></div>
+                )}
               </div>
               <div className="my-3 border-t border-dashed border-gray-300" />
               {receipt.items.map((i) => (
@@ -589,9 +811,19 @@ export default function KasirPage() {
                   <div className="flex justify-between"><span>Diskon</span><span>-{rupiah(receipt.discount)}</span></div>
                 )}
                 <div className="flex justify-between text-sm font-bold"><span>Total</span><span>{rupiah(receipt.total)}</span></div>
-                <div className="flex justify-between"><span>Tunai</span><span>{rupiah(receipt.bayar)}</span></div>
-                <div className="flex justify-between"><span>Kembali</span><span>{rupiah(receipt.kembalian)}</span></div>
+                <div className="flex justify-between">
+                  <span>{receipt.kasbon > 0 ? "Uang muka" : "Tunai"}</span>
+                  <span>{rupiah(receipt.bayar)}</span>
+                </div>
+                {receipt.kasbon > 0 ? (
+                  <div className="flex justify-between font-bold"><span>Sisa kasbon</span><span>{rupiah(receipt.kasbon)}</span></div>
+                ) : (
+                  <div className="flex justify-between"><span>Kembali</span><span>{rupiah(receipt.kembalian)}</span></div>
+                )}
               </div>
+              {receipt.poin > 0 && (
+                <div className="mt-2 text-center">Poin didapat: +{receipt.poin}</div>
+              )}
               <div className="mt-4 text-center">Terima kasih!</div>
             </div>
 
@@ -614,6 +846,19 @@ export default function KasirPage() {
           </div>
         </div>
       )}
+      <MemberFormModal
+        open={showAddMember}
+        onClose={() => setShowAddMember(false)}
+        branches={branches}
+        defaultCabangId={cabangId}
+        defaultName={customer.trim()}
+        onSaved={(m) => {
+          setMembers((ms) => [m, ...ms]);
+          setMember(m);
+          setCustomer("");
+          fetchMembers();
+        }}
+      />
     </AppShell>
   );
 }
