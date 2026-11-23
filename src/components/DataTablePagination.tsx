@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -48,58 +40,78 @@ export default function DataTablePagination({
     if (p >= 1 && p <= totalPages && p !== page) onPageChange(p);
   };
 
+  const btn =
+    "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors";
+
   return (
-    <div className="flex flex-col gap-3 px-5 py-3 text-xs text-gray-500 md:flex-row md:items-center md:justify-between">
-      <div>
-        Menampilkan {from}-{to} dari {total} data
+    <div className="flex flex-col gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2">
+          <span>Tampilkan</span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-sm focus:border-jax-lime focus:outline-none"
+          >
+            {pageSizeOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <span>per halaman</span>
+        </div>
+        <span className="hidden h-4 w-px bg-gray-200 md:block" />
+        <span>
+          <span className="font-medium text-gray-900">
+            {from}–{to}
+          </span>{" "}
+          dari <span className="font-medium text-gray-900">{total}</span> data
+        </span>
       </div>
 
-      <Pagination className="mx-0 w-auto">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              onClick={() => go(page - 1)}
-              aria-disabled={page <= 1}
-              className={cn(page <= 1 && "pointer-events-none opacity-50")}
-            />
-          </PaginationItem>
-          {getPageNumbers(page, totalPages).map((p, i) =>
-            p === "ellipsis" ? (
-              <PaginationItem key={`e${i}`}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            ) : (
-              <PaginationItem key={p}>
-                <PaginationLink isActive={p === page} onClick={() => go(p)}>
-                  {p}
-                </PaginationLink>
-              </PaginationItem>
-            )
-          )}
-          <PaginationItem>
-            <PaginationNext
-              onClick={() => go(page + 1)}
-              aria-disabled={page >= totalPages}
-              className={cn(page >= totalPages && "pointer-events-none opacity-50")}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-
-      <div className="flex items-center gap-2">
-        <span>Rows per page</span>
-        <select
-          value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="rounded border border-gray-200 bg-white px-2 py-1"
+      <nav aria-label="pagination" className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label="Halaman sebelumnya"
+          disabled={page <= 1}
+          onClick={() => go(page - 1)}
+          className={cn(btn, "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-40")}
         >
-          {pageSizeOptions.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {getPageNumbers(page, totalPages).map((p, i) =>
+          p === "ellipsis" ? (
+            <span key={`e${i}`} className="px-1 text-gray-400">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              aria-current={p === page ? "page" : undefined}
+              onClick={() => go(p)}
+              className={cn(
+                btn,
+                p === page
+                  ? "bg-jax-lime text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              )}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          type="button"
+          aria-label="Halaman berikutnya"
+          disabled={page >= totalPages}
+          onClick={() => go(page + 1)}
+          className={cn(btn, "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-40")}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </nav>
     </div>
   );
 }

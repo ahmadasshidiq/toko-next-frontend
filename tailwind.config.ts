@@ -32,8 +32,9 @@ const config: Config = {
           bg: '#F6F7FB',
           surface: '#FFFFFF',
           line: '#E5E7EB',
-          lime: '#B7D600',
-          limeDark: '#9FBC00',
+          lime: '#53AF31', // logo green
+          leaf: '#AECC42', // logo light green
+          limeDark: '#3F8F22',
         },
       },
     },

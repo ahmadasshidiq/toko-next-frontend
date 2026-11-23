@@ -10,9 +10,9 @@
   --card-foreground: 221 39% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 221 39% 11%;
-  /* primary = jax lime (#B7D600) */
-  --primary: 68 100% 42%;
-  --primary-foreground: 221 39% 11%;
+  /* primary = logo green (#53AF31) */
+  --primary: 103 56% 44%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 220 14% 96%;
   --secondary-foreground: 221 39% 11%;
   --muted: 220 14% 96%;
@@ -23,7 +23,7 @@
   --destructive-foreground: 0 0% 98%;
   --border: 220 13% 91%;
   --input: 220 13% 91%;
-  --ring: 68 100% 36%;
+  --ring: 103 56% 38%;
   --radius: 0.5rem;
 }
 

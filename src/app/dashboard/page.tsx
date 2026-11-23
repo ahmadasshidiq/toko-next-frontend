@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import ActionMenu from '@/components/ActionMenu';
+import DataTablePagination from '@/components/DataTablePagination';
 import { Stock } from '../manage/product/page';
 
 export default function DashboardPage() {
@@ -15,6 +16,10 @@ export default function DashboardPage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+  const pagedProducts = products.slice((page - 1) * pageSize, page * pageSize);
 
   const fetchDashboard = async () => {
     setIsLoadingDashboard(true);
@@ -197,7 +202,7 @@ export default function DashboardPage() {
         <>
           <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
             {stats.map((s) => (
-              <div key={s.title} className="rounded-2xl bg-jax-lime px-5 py-4 text-white">
+              <div key={s.title} className="rounded-2xl bg-gradient-to-br from-jax-lime to-jax-leaf px-5 py-4 text-white shadow-sm">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="text-xs opacity-90">{s.title}</div>
@@ -238,7 +243,7 @@ export default function DashboardPage() {
                         return (
                           <div key={p.day} className="flex w-full flex-col items-center gap-2">
                             <div
-                              className="w-7 rounded-md bg-jax-lime transition-all"
+                              className="w-7 rounded-md bg-gradient-to-t from-jax-lime to-jax-leaf transition-all"
                               style={{ height: `${h}px` }}
                             />
                             <div className="text-[11px] text-gray-500">{p.day}</div>
@@ -252,7 +257,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Pendapatan per Minggu */}
-            <div className="rounded-2xl bg-jax-lime p-5 text-white">
+            <div className="rounded-2xl bg-gradient-to-br from-jax-limeDark to-jax-lime p-5 text-white shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-sm font-semibold">Pendapatan per Minggu</div>
@@ -310,7 +315,7 @@ export default function DashboardPage() {
                   <td colSpan={9} className="px-5 py-6 text-center text-sm text-gray-500">Belum ada data produk</td>
                 </tr>
               ) : (
-                products.map((p) => (
+                pagedProducts.map((p) => (
                   <tr key={p.code} className="border-b border-gray-100">
                     <td className="px-5 py-3">
                       <div className="h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
@@ -357,13 +362,17 @@ export default function DashboardPage() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 text-xs text-gray-500">
-          <div>Menampilkan {products.length} produk</div>
-          <div className="flex items-center gap-2">
-            <span>Rows per page</span>
-            <span className="rounded border border-gray-200 bg-white px-2 py-1">20</span>
-          </div>
-        </div>
+        <DataTablePagination
+          page={Math.min(page, totalPages)}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          total={products.length}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
     </AppShell>
   );
