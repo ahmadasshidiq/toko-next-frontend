@@ -107,7 +107,7 @@ export default function Sidebar() {
       action: {
         label: "Keluar",
         onClick: async () => {
-          await fetch("/api/logout", {
+          await fetch("/bff/logout", {
             method: "POST",
             credentials: "include",
           });

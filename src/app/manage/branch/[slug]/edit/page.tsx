@@ -35,7 +35,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/branch/${id}`, {
+      const result = await fetch(`/bff/branch/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -50,7 +50,7 @@ export default function Page() {
 
       if (result.status === 401) {
         toast.error("Your session has ended. Please log in again.");
-        await fetch("/api/logout", {
+        await fetch("/bff/logout", {
           method: "POST",
           credentials: "include",
         });
@@ -70,7 +70,7 @@ export default function Page() {
 
   const fetchById = async () => {
     try {
-      const res = await fetch(`/api/branch/${id}`);
+      const res = await fetch(`/bff/branch/${id}`);
 
       if (!res.ok) throw new Error("Failed to retrieve branch data");
 

@@ -20,14 +20,14 @@ export default function DashboardPage() {
     setIsLoadingDashboard(true);
     try {
       const user = JSON.parse(localStorage.getItem('user') ?? '{}');
-      const result = await fetch(`/api/dashboard?id=${user._id}`, {
+      const result = await fetch(`/bff/dashboard?id=${user._id}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (result.status === 401) {
         toast.error('Your session has ended. Please log in again.');
-        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+        await fetch('/bff/logout', { method: 'POST', credentials: 'include' });
         localStorage.removeItem('user');
         router.replace('/login');
         return;
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         label: 'Hapus',
         onClick: async () => {
           try {
-            await fetch(`/api/stock/${id}?idProduct=${idProduct}`, {
+            await fetch(`/bff/stock/${id}?idProduct=${idProduct}`, {
               method: 'DELETE',
             });
             toast.success('Data successfully deleted');
@@ -93,14 +93,14 @@ export default function DashboardPage() {
     setIsLoadingProducts(true);
     try {
       const user = JSON.parse(localStorage.getItem('user') ?? '{}');
-      const result = await fetch(`/api/stock?id=${user._id}`, {
+      const result = await fetch(`/bff/stock?id=${user._id}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (result.status === 401) {
         toast.error('Your session has ended. Please log in again.');
-        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+        await fetch('/bff/logout', { method: 'POST', credentials: 'include' });
         localStorage.removeItem('user');
         router.replace('/login');
         return;

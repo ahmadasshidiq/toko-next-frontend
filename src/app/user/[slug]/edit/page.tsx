@@ -38,7 +38,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/user/${id}`, {
+      const result = await fetch(`/bff/user/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +57,7 @@ export default function Page() {
 
       if (result.status === 401) {
         toast.error("Your session has ended. Please log in again.");
-        await fetch("/api/logout", {
+        await fetch("/bff/logout", {
           method: "POST",
           credentials: "include",
         });
@@ -79,7 +79,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/branch?id=${user._id}`, {
+      const result = await fetch(`/bff/branch?id=${user._id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -88,7 +88,7 @@ export default function Page() {
 
       if (result.status === 401) {
         toast.error("Your session has ended. Please log in again.");
-        await fetch("/api/logout", {
+        await fetch("/bff/logout", {
           method: "POST",
           credentials: "include",
         });
@@ -108,7 +108,7 @@ export default function Page() {
 
   const fetchById = async () => {
     try {
-      const res = await fetch(`/api/user/${id}`);
+      const res = await fetch(`/bff/user/${id}`);
 
       if (!res.ok) throw new Error("Failed to retrieve user data");
 

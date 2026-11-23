@@ -242,7 +242,7 @@ export default function Page() {
       formData.append("file", importFile);
       formData.append("idOwner", user._id);
 
-      const res = await fetch("/api/product-brand/import", {
+      const res = await fetch("/bff/product-brand/import", {
         method: "POST",
         body: formData,
       });
@@ -266,7 +266,7 @@ export default function Page() {
   const fetchExportRows = async (): Promise<typeof rows | null> => {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-      const result = await fetch(`/api/product-brand?id=${user._id}&${exportQuery}`);
+      const result = await fetch(`/bff/product-brand?id=${user._id}&${exportQuery}`);
       const res = await result.json();
       if (!result.ok) throw new Error(res?.error || "Failed to load data");
       return listOf(res.data);
@@ -296,7 +296,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/product-brand?id=${user._id}&${query}`, {
+      const result = await fetch(`/bff/product-brand?id=${user._id}&${query}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -305,7 +305,7 @@ export default function Page() {
 
       if (result.status === 401) {
         toast.error("Your session has ended. Please log in again.");
-        await fetch("/api/logout", {
+        await fetch("/bff/logout", {
           method: "POST",
           credentials: "include",
         });
@@ -334,7 +334,7 @@ export default function Page() {
         label: "Hapus",
         onClick: async () => {
           try {
-            await fetch(`/api/product-brand/${id}`, {
+            await fetch(`/bff/product-brand/${id}`, {
               method: "DELETE",
             });
 

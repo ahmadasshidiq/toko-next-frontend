@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const publicRoutes = ['/login', '/register'];
-  const authApiRoutes = ['/api/login', '/api/register'];
+  const authApiRoutes = ['/bff/login', '/bff/register'];
 
   if (token && publicRoutes.includes(pathname)) {
     return NextResponse.redirect(

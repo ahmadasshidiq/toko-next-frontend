@@ -36,7 +36,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const result = await fetch("/api/register", {
+      const result = await fetch("/bff/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
