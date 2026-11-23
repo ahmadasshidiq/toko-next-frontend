@@ -4,6 +4,7 @@ import SidebarTrigger from '@/components/SidebarTrigger';
 import { useEffect, useState } from 'react';
 import { useRouter } from "@/lib/useAppRouter";
 import { toast } from 'sonner';
+import { confirm } from "@/components/ConfirmDialog";
 import ActionMenu from '@/components/ActionMenu';
 import DataTablePagination from '@/components/DataTablePagination';
 import { Stock } from '../manage/product/page';
@@ -81,24 +82,21 @@ export default function DashboardPage() {
   };
 
   const handleDelete = (id: string, idProduct: string) => {
-    toast('Yakin ingin menghapus data ini?', {
+    confirm({
+      title: 'Yakin ingin menghapus data ini?',
       description: 'Data yang dihapus tidak dapat dikembalikan.',
-      duration: Infinity,
-      action: {
-        label: 'Hapus',
-        onClick: async () => {
-          try {
-            await fetch(`/bff/stock/${id}?idProduct=${idProduct}`, {
-              method: 'DELETE',
-            });
-            toast.success('Data successfully deleted');
-            fetchProducts();
-          } catch (err) {
-            toast.error('Failed to delete data');
-          }
-        },
-      },
-      cancel: { label: 'Batal', onClick: () => {} },
+      confirmLabel: 'Hapus',
+    }).then(async (ok) => {
+      if (!ok) return;
+      try {
+        await fetch(`/bff/stock/${id}?idProduct=${idProduct}`, {
+          method: 'DELETE',
+        });
+        toast.success('Data successfully deleted');
+        fetchProducts();
+      } catch (err) {
+        toast.error('Failed to delete data');
+      }
     });
   };
 

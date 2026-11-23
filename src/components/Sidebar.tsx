@@ -6,6 +6,7 @@ import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSidebar } from "@/components/AppShell";
 import { toast } from "sonner";
+import { confirm } from "@/components/ConfirmDialog";
 import { HandCoins, ShoppingCart, Users } from "lucide-react";
 
 type NavItem =
@@ -121,21 +122,19 @@ export default function Sidebar() {
   );
 
   const handleLogout = () => {
-    toast("Yakin ingin keluar?", {
+    confirm({
+      title: "Yakin ingin keluar?",
       description: "Sesi kamu akan langsung diakhiri",
-      duration: Infinity,
-      action: {
-        label: "Keluar",
-        onClick: async () => {
-          await fetch("/bff/logout", {
-            method: "POST",
-            credentials: "include",
-          });
-          localStorage.removeItem("user");
-          router.replace("/login");
-        },
-      },
-      cancel: { label: "Batal", onClick: () => {} },
+      confirmLabel: "Keluar",
+      icon: "logout",
+    }).then(async (ok) => {
+      if (!ok) return;
+      await fetch("/bff/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      localStorage.removeItem("user");
+      router.replace("/login");
     });
   };
 

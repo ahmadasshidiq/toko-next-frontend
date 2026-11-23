@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import NavigationProgress from "@/components/NavigationProgress";
+import { ConfirmDialogHost } from "@/components/ConfirmDialog";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default function RootLayout({
         <NavigationProgress />
         {children}
         <Toaster richColors position="top-right" />
+        <ConfirmDialogHost />
       </body>
     </html>
   );

@@ -22,6 +22,7 @@ import {
   Star,
   X,
 } from "lucide-react";
+import { confirm } from "@/components/ConfirmDialog";
 import MemberFormModal, { type Member } from "@/components/MemberFormModal";
 import type { Stock } from "../manage/product/page";
 import type { Branch } from "../manage/branch/page";
@@ -184,8 +185,17 @@ export default function KasirPage() {
     return list.slice(0, 6);
   }, [members, customer]);
 
-  const changeBranch = (id: string) => {
-    if (cart.length && !confirm("Ganti cabang akan mengosongkan keranjang. Lanjutkan?")) return;
+  const changeBranch = async (id: string) => {
+    if (
+      cart.length &&
+      !(await confirm({
+        title: "Ganti cabang?",
+        description: "Keranjang akan dikosongkan karena stok tiap cabang berbeda.",
+        confirmLabel: "Ganti cabang",
+        variant: "primary",
+      }))
+    )
+      return;
     setCart([]);
     setMember(null);
     setCabangId(id);

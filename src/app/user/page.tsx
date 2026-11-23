@@ -13,6 +13,7 @@ import TableSkeleton from "@/components/TableSkeleton";
 import TableEmpty from "@/components/TableEmpty";
 import ActionMenu from "@/components/ActionMenu";
 import { toast } from "sonner";
+import { confirm } from "@/components/ConfirmDialog";
 
 export type User = {
   _id: string;
@@ -343,28 +344,22 @@ export default function Page() {
   };
 
   const handleDelete = (id: string) => {
-    toast("Yakin ingin menghapus data ini?", {
+    confirm({
+      title: "Yakin ingin menghapus data ini?",
       description: "Data yang dihapus tidak dapat dikembalikan.",
-      duration: Infinity,
-      action: {
-        label: "Hapus",
-        onClick: async () => {
-          try {
-            await fetch(`/bff/user/${id}`, {
-              method: "DELETE",
-            });
+      confirmLabel: "Hapus",
+    }).then(async (ok) => {
+      if (!ok) return;
+      try {
+        await fetch(`/bff/user/${id}`, {
+          method: "DELETE",
+        });
 
-            toast.success("Data successfully deleted");
-            fetchData();
-          } catch (err) {
-            toast.error("Failed to delete data");
-          }
-        },
-      },
-      cancel: {
-        label: "Batal",
-        onClick: () => {},
-      },
+        toast.success("Data successfully deleted");
+        fetchData();
+      } catch (err) {
+        toast.error("Failed to delete data");
+      }
     });
   };
 

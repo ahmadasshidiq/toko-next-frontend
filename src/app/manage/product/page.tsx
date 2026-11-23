@@ -13,6 +13,7 @@ import { cn, exportToExcel } from "@/utils/helper";
 import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { confirm } from "@/components/ConfirmDialog";
 import { Branch } from "../branch/page";
 import { Brand } from "../product-brand/page";
 import { Category } from "../product-category/page";
@@ -460,28 +461,22 @@ export default function Page() {
   };
 
   const handleDelete = (id: string, idProduct: string) => {
-    toast("Yakin ingin menghapus data ini?", {
+    confirm({
+      title: "Yakin ingin menghapus data ini?",
       description: "Data yang dihapus tidak dapat dikembalikan.",
-      duration: Infinity,
-      action: {
-        label: "Hapus",
-        onClick: async () => {
-          try {
-            await fetch(`/bff/stock/${id}?idProduct=${idProduct}`, {
-              method: "DELETE",
-            });
+      confirmLabel: "Hapus",
+    }).then(async (ok) => {
+      if (!ok) return;
+      try {
+        await fetch(`/bff/stock/${id}?idProduct=${idProduct}`, {
+          method: "DELETE",
+        });
 
-            toast.success("Data successfully deleted");
-            fetchData();
-          } catch (err) {
-            toast.error("Failed to delete data");
-          }
-        },
-      },
-      cancel: {
-        label: "Batal",
-        onClick: () => {},
-      },
+        toast.success("Data successfully deleted");
+        fetchData();
+      } catch (err) {
+        toast.error("Failed to delete data");
+      }
     });
   };
 
