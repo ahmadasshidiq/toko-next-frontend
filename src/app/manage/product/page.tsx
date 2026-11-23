@@ -6,6 +6,8 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { listOf } from "@/utils/pagination";
 import SidebarTrigger from "@/components/SidebarTrigger";
 import TableSkeleton from "@/components/TableSkeleton";
+import TableEmpty from "@/components/TableEmpty";
+import { ImageOff } from "lucide-react";
 import ActionMenu from "@/components/ActionMenu";
 import { cn, exportToExcel } from "@/utils/helper";
 import { useRouter } from "@/lib/useAppRouter";
@@ -170,22 +172,15 @@ export default function Page() {
 
     if (!rows.length) {
       return (
-        <tr>
-          <td
-            colSpan={5}
-            className="px-5 py-10 text-center text-sm text-gray-500"
-          >
-            No data found.
-          </td>
-        </tr>
+        <TableEmpty title="Belum ada data produk" description="Produk yang ditambahkan akan muncul di sini" />
       );
     }
 
     return rows.map((r) => (
-      <tr key={r._id} className="border-b border-gray-100">
+      <tr key={r._id} className="border-b border-gray-100 transition-colors hover:bg-gray-50/70">
         {columns.image.visible && (
           <td className="px-5 py-3">
-            <div className="h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
               {(() => {
                 const imageSrc = r.produk?.file || r.imageDataUrl || "";
                 return imageSrc ? (
@@ -195,17 +190,17 @@ export default function Page() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="h-full w-full bg-gray-200" />
+                  <ImageOff className="h-4 w-4 text-gray-300" />
                 );
               })()}
             </div>
           </td>
         )}
         {columns.name.visible && (
-          <td className="px-5 py-3 text-sm text-gray-900">{r.name}</td>
+          <td className="px-5 py-3 text-sm font-medium text-gray-900">{r.name}</td>
         )}
         {columns.code.visible && (
-          <td className="px-5 py-3 text-sm text-gray-700">{r.code}</td>
+          <td className="px-5 py-3 text-sm text-gray-500">{r.code}</td>
         )}
         {columns.category.visible && (
           <td className="px-5 py-3 text-sm text-gray-700">
@@ -218,7 +213,19 @@ export default function Page() {
           </td>
         )}
         {columns.qty.visible && (
-          <td className="px-5 py-3 text-sm text-gray-700">{r.qty}</td>
+          <td className="px-5 py-3">
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                r.qty <= 0
+                  ? "bg-red-50 text-red-600"
+                  : r.qty < 10
+                  ? "bg-amber-50 text-amber-600"
+                  : "bg-jax-lime/10 text-jax-limeDark"
+              }`}
+            >
+              {r.qty}
+            </span>
+          </td>
         )}
         {columns.branch.visible && (
           <td className="px-5 py-3 text-sm text-gray-700">
@@ -227,12 +234,12 @@ export default function Page() {
         )}
         {columns.sellPrice.visible && (
           <td className="px-5 py-3 text-sm text-gray-700">
-            {r.harga?.toLocaleString("id-ID")}
+            Rp {(r.harga ?? 0).toLocaleString("id-ID")}
           </td>
         )}
         {columns.buyPrice.visible && (
-          <td className="px-5 py-3 text-sm text-gray-700">
-            {r.hargaModal?.toLocaleString("id-ID")}
+          <td className="px-5 py-3 text-sm text-gray-500">
+            Rp {(r.hargaModal ?? 0).toLocaleString("id-ID")}
           </td>
         )}
         <td className="px-5 py-3 text-right">
@@ -605,11 +612,11 @@ export default function Page() {
       {/* Display Stat Stock */}
       {stockCards()}
 
-      <div className="mt-4 rounded-2xl bg-white border border-gray-200 overflow-hidden">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="border-b border-gray-200">
-              <tr className="text-left text-[11px] text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/70">
+              <tr className="text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">
                 {renderTableHeader()}
               </tr>
             </thead>

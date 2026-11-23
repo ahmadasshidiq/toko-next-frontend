@@ -6,6 +6,7 @@ import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSidebar } from "@/components/AppShell";
 import { toast } from "sonner";
+import { ShoppingCart } from "lucide-react";
 
 type NavItem =
   | {
@@ -51,6 +52,12 @@ export default function Sidebar() {
             className="h-5 w-5 object-contain"
           />
         ),
+      },
+      {
+        key: "kasir",
+        label: "Kasir",
+        href: "/kasir",
+        icon: <ShoppingCart className="h-5 w-5" />,
       },
       {
         key: "kelola-barang",

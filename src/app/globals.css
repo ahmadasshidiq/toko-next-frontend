@@ -54,3 +54,20 @@ input:-moz-autofill,
 input:-moz-autofill-preview {
   color: #111827 !important;
 }
+
+/* Kasir: saat cetak struk, hanya tampilkan #struk */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #struk,
+  #struk * {
+    visibility: visible;
+  }
+  #struk {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    border: 0;
+  }
+}

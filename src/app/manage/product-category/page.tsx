@@ -6,6 +6,7 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { listOf } from "@/utils/pagination";
 import SidebarTrigger from "@/components/SidebarTrigger";
 import TableSkeleton from "@/components/TableSkeleton";
+import TableEmpty from "@/components/TableEmpty";
 import ActionMenu from "@/components/ActionMenu";
 import { cn, exportToExcel } from "@/utils/helper";
 import { useRouter } from "@/lib/useAppRouter";
@@ -132,19 +133,12 @@ export default function Page() {
 
     if (!rows.length) {
       return (
-        <tr>
-          <td
-            colSpan={5}
-            className="px-5 py-10 text-center text-sm text-gray-500"
-          >
-            No data found.
-          </td>
-        </tr>
+        <TableEmpty title="Belum ada data kategori" description="Kategori yang ditambahkan akan muncul di sini" />
       );
     }
 
     return rows.map((r) => (
-      <tr key={r._id} className="border-b border-gray-100">
+      <tr key={r._id} className="border-b border-gray-100 transition-colors hover:bg-gray-50/70">
         {columns.name.visible && (
           <td className="px-5 py-3 text-sm text-gray-900">{r.name}</td>
         )}
@@ -475,11 +469,11 @@ export default function Page() {
         </button>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white border border-gray-200 overflow-hidden">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="border-b border-gray-200">
-              <tr className="text-left text-[11px] text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/70">
+              <tr className="text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">
                 {renderTableHeader()}
               </tr>
             </thead>

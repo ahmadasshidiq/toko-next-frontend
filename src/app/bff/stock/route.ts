@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
   const baseUrl = process.env.API_BASE_URL;
   const resStok = await fetch(
-    `${baseUrl}/stok-cabang/${idOwner}/get-by-owner/all/cabang${paginationQuery(searchParams)}`,
+    `${baseUrl}/stok-cabang/${idOwner}/get-by-owner/${searchParams.get("cabang") || "all"}/cabang${paginationQuery(searchParams)}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
