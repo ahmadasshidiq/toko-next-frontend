@@ -5,7 +5,7 @@ import DataTablePagination from "@/components/DataTablePagination";
 import { useServerPagination } from "@/hooks/useServerPagination";
 import { listOf } from "@/utils/pagination";
 import SidebarTrigger from "@/components/SidebarTrigger";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/useAppRouter";
 import { Branch } from "../manage/branch/page";
 import { useEffect, useMemo, useState } from "react";
 import { cn, rolePillClass, exportToExcel } from "@/utils/helper";

@@ -2,7 +2,7 @@
 
 import AppShell from "@/components/AppShell";
 import SidebarTrigger from "@/components/SidebarTrigger";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Branch } from "../../page";

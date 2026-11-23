@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/useAppRouter";
 import api from "@/services/api";
 import { toast } from "sonner";
 
@@ -83,7 +83,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="mb-16">
-              <img src="/logo_toko.png" alt="Toko Logo" className="h-8 w-auto" />
+              <img src="/logo_toko.png" alt="Toko Logo" className="h-12 w-auto" />
             </div>
 
             {/* Header */}

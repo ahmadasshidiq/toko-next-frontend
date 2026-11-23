@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/useAppRouter";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
@@ -78,7 +78,7 @@ export default function RegisterPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="mb-8">
-              <img src="/logo_toko.png" alt="Toko Logo" className="h-8 w-auto" />
+              <img src="/logo_toko.png" alt="Toko Logo" className="h-12 w-auto" />
             </div>
 
             {/* Header */}
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Nama lengkap"
+                placeholder="Nama lengkap.."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-400"
                 required
               />
@@ -113,7 +113,7 @@ export default function RegisterPage() {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="Email"
+                placeholder="Email.."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-400"
                 required
               />
@@ -123,7 +123,7 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.storeName}
                 onChange={handleInputChange}
-                placeholder="Nama toko"
+                placeholder="Nama toko.."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-400"
                 required
               />
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Password"
+                placeholder="Password.."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-400"
                 required
               />
@@ -143,7 +143,7 @@ export default function RegisterPage() {
                 type="password"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                placeholder="Ulangi password"
+                placeholder="Ulangi password.."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-400"
                 required
               />

@@ -8,7 +8,7 @@ import SidebarTrigger from "@/components/SidebarTrigger";
 import TableSkeleton from "@/components/TableSkeleton";
 import ActionMenu from "@/components/ActionMenu";
 import { cn, exportToExcel } from "@/utils/helper";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/useAppRouter";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Branch } from "../branch/page";
