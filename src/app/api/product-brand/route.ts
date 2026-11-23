@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { paginationQuery } from "@/utils/pagination";
 
 export async function GET(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const response = await fetch(
-    `${baseUrl}/produk-merk/${idOwner}/get-by-owner`,
+    `${baseUrl}/produk-merk/${idOwner}/get-by-owner${paginationQuery(searchParams)}`,
     {
       method: "GET",
       headers: {
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)

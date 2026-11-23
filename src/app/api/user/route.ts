@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { paginationQuery, listOf, withList } from "@/utils/pagination";
 import { capitalizeWords } from "@/utils/helper";
 
 export async function GET(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
 
   const emailBase64 = btoa(emailOwner);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const resUser = await fetch(`${baseUrl}/users/${emailBase64}/email`, {
+  const resUser = await fetch(`${baseUrl}/users/${emailBase64}/email${paginationQuery(searchParams)}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
   }
 
   const userWithBranch = await Promise.all(
-    userData.data.map(async (v: any) => {
+    listOf(userData.data).map(async (v: any) => {
       const branchRes = await fetch(`${baseUrl}/cabang/${v.cabangId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -49,12 +50,12 @@ export async function GET(req: Request) {
     })
   );
 
-  return NextResponse.json({ data: userWithBranch }, { status: 200 });
+  return NextResponse.json({ data: withList(userData.data, userWithBranch) }, { status: 200 });
 }
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)

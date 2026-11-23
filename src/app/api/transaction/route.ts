@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { paginationQuery, listOf, withList } from "@/utils/pagination";
 
 export async function GET(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const response = await fetch(
-    `${baseUrl}/transaksi/${idOwner}/get-by-owner/all/cabang`,
+    `${baseUrl}/transaksi/${idOwner}/get-by-owner/all/cabang${paginationQuery(searchParams)}`,
     {
       method: "GET",
       headers: {
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
   const transactionData = await response.json();
 
   const transactionWithBranch = await Promise.all(
-    transactionData.data.map(async (v: any) => {
+    listOf(transactionData.data).map(async (v: any) => {
       const branchRes = await fetch(`${baseUrl}/cabang/${v.cabangId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -47,7 +48,7 @@ export async function GET(req: Request) {
   );
 
   return NextResponse.json(
-    { data: transactionWithBranch },
+    { data: withList(transactionData.data, transactionWithBranch) },
     { status: response.status }
   );
 }

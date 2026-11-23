@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-export async function GET(
-  _: Request,
-  { params }: { params: { slug: string } }
-) {
-  const cookieStore = cookies();
+export async function GET(_: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -26,12 +24,10 @@ export async function GET(
   return NextResponse.json(data, { status: response.status });
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
+export async function PUT(req: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)
@@ -74,12 +70,10 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _: Request,
-  { params }: { params: { slug: string } }
-) {
+export async function DELETE(_: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)

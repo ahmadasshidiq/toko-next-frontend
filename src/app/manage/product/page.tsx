@@ -1,10 +1,13 @@
 "use client";
 
 import AppShell from "@/components/AppShell";
+import DataTablePagination from "@/components/DataTablePagination";
+import { useServerPagination } from "@/hooks/useServerPagination";
+import { listOf } from "@/utils/pagination";
 import SidebarTrigger from "@/components/SidebarTrigger";
 import TableSkeleton from "@/components/TableSkeleton";
 import ActionMenu from "@/components/ActionMenu";
-import { includesText, cn, exportToExcel } from "@/utils/helper";
+import { cn, exportToExcel } from "@/utils/helper";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -63,24 +66,17 @@ export default function Page() {
     buyPrice: { label: "Harga Beli per satuan", visible: true },
   });
 
-  const filteredRows = useMemo(() => {
-    const q = filterText.trim().toLowerCase();
-    if (!q) return rows;
-
-    return rows.filter((r) => {
-      const qtyText = Number.isFinite(r.qty) ? String(r.qty) : "";
-      const sellText = Number.isFinite(r.harga) ? String(r.harga) : "";
-      const buyText = Number.isFinite(r.hargaModal) ? String(r.hargaModal) : "";
-
-      return (
-        includesText(r.name, q) ||
-        includesText(r.code, q) ||
-        includesText(qtyText, q) ||
-        includesText(sellText, q) ||
-        includesText(buyText, q)
-      );
-    });
-  }, [rows, filterText]);
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    setMeta,
+    query,
+    exportQuery,
+  } = useServerPagination(filterText);
 
   const actionRows = (id: string, idProduct: string) => {
     return (
@@ -172,7 +168,7 @@ export default function Page() {
       return <TableSkeleton />;
     }
 
-    if (!filteredRows.length) {
+    if (!rows.length) {
       return (
         <tr>
           <td
@@ -185,7 +181,7 @@ export default function Page() {
       );
     }
 
-    return filteredRows?.map((r) => (
+    return rows.map((r) => (
       <tr key={r._id} className="border-b border-gray-100">
         {columns.image.visible && (
           <td className="px-5 py-3">
@@ -386,10 +382,25 @@ export default function Page() {
     );
   };
 
-  const handleExport = () => {
+  const fetchExportRows = async (): Promise<typeof rows | null> => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+      const result = await fetch(`/api/stock?id=${user._id}&${exportQuery}`);
+      const res = await result.json();
+      if (!result.ok) throw new Error(res?.error || "Failed to load data");
+      return listOf(res.data);
+    } catch (err) {
+      toast.error((err as Error).message);
+      return null;
+    }
+  };
+
+  const handleExport = async () => {
+    const exportRows = await fetchExportRows();
+    if (!exportRows) return;
     const visibleCols = Object.entries(columns).filter(([, col]) => col.visible);
     const headers = visibleCols.map(([, col]) => col.label);
-    const data = filteredRows.map((r) =>
+    const data = exportRows.map((r) =>
       visibleCols.map(([key]) => {
         if (key === "image") return r.produk?.file || "-";
         if (key === "name") return r.name;
@@ -411,7 +422,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/stock?id=${user._id}`, {
+      const result = await fetch(`/api/stock?id=${user._id}&${query}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -432,7 +443,8 @@ export default function Page() {
       const res = await result.json();
       if (!result.ok) throw new Error(res?.error || "Failed to load data");
 
-      setRows(res.data);
+      setRows(listOf(res.data));
+      setMeta(res.data);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -468,7 +480,8 @@ export default function Page() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   return (
     <AppShell>
@@ -604,17 +617,14 @@ export default function Page() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 text-xs text-gray-500">
-          <div>
-            Page {filteredRows?.length} dari {rows?.length}
-          </div>
-          <div className="flex items-center gap-2">
-            <span>Rows per page</span>
-            <span className="rounded border border-gray-200 bg-white px-2 py-1">
-              20
-            </span>
-          </div>
-        </div>
+        <DataTablePagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       {renderModalImport()}

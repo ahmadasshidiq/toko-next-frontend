@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { paginationQuery } from "@/utils/pagination";
 
 export async function GET(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Parameter not found" }, { status: 400 });
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const response = await fetch(`${baseUrl}/cabang/${idOwner}/get-by-owner`, {
+  const response = await fetch(`${baseUrl}/cabang/${idOwner}/get-by-owner${paginationQuery(searchParams)}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)

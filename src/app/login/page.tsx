@@ -83,7 +83,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="mb-16">
-              <img src="/jaxlab.png" alt="JaxLab Logo" className="h-8 w-auto" />
+              <img src="/logo_toko.png" alt="Toko Logo" className="h-8 w-auto" />
             </div>
 
             {/* Header */}

@@ -7,7 +7,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "JaxLab - Sistem PoS dan Inventaris",
+  title: "Toko - Sistem PoS dan Inventaris",
   description: "",
 };
 

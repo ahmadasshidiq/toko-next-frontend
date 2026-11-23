@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { paginationQuery, listOf, withList } from "@/utils/pagination";
 
 export async function GET(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token)
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const resStok = await fetch(
-    `${baseUrl}/stok-cabang/${idOwner}/get-by-owner/all/cabang`,
+    `${baseUrl}/stok-cabang/${idOwner}/get-by-owner/all/cabang${paginationQuery(searchParams)}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
     return NextResponse.json(stokData, { status: resStok.status });
 
   const stokWithRelations = await Promise.all(
-    stokData.data.map(async (v: any) => {
+    listOf(stokData.data).map(async (v: any) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -61,12 +62,12 @@ export async function GET(req: Request) {
     })
   );
 
-  return NextResponse.json({ data: stokWithRelations }, { status: 200 });
+  return NextResponse.json({ data: withList(stokData.data, stokWithRelations) }, { status: 200 });
 }
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token)

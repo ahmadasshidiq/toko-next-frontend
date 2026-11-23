@@ -140,8 +140,8 @@ export default function Sidebar() {
           aria-label="Toggle Sidebar"
         >
           <img
-            src={open ? "/jaxlab.png" : "/jaxer.png"}
-            alt={open ? "JaxLab" : "Jaxer"}
+            src={open ? "/logo_toko.png" : "/logo_toko_t.png"}
+            alt={open ? "Toko" : ""}
             className={cn(
               open ? "h-10 w-auto" : "h-12 w-12 rounded-lg p-1 object-contain"
             )}

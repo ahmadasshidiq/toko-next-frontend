@@ -1,11 +1,14 @@
 "use client";
 
 import AppShell from "@/components/AppShell";
+import DataTablePagination from "@/components/DataTablePagination";
+import { useServerPagination } from "@/hooks/useServerPagination";
+import { listOf } from "@/utils/pagination";
 import SidebarTrigger from "@/components/SidebarTrigger";
 import { useRouter } from "next/navigation";
 import { Branch } from "../manage/branch/page";
 import { useEffect, useMemo, useState } from "react";
-import { includesText, cn, rolePillClass, exportToExcel } from "@/utils/helper";
+import { cn, rolePillClass, exportToExcel } from "@/utils/helper";
 import TableSkeleton from "@/components/TableSkeleton";
 import ActionMenu from "@/components/ActionMenu";
 import { toast } from "sonner";
@@ -43,17 +46,17 @@ export default function Page() {
     jumlahTransaksi: { label: "Jumlah", visible: true },
   });
 
-  const filteredRows = useMemo(() => {
-    const q = filterText.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        includesText(r.name.toLowerCase(), q) ||
-        includesText(r.namaCabang, q) ||
-        includesText(r.noInvoice, q) ||
-        includesText(r.date, q)
-    );
-  }, [rows, filterText]);
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    setMeta,
+    query,
+    exportQuery,
+  } = useServerPagination(filterText);
 
   const actionRows = (id: string) => {
     return (
@@ -138,7 +141,7 @@ export default function Page() {
       return <TableSkeleton />;
     }
 
-    if (!filteredRows.length) {
+    if (!rows.length) {
       return (
         <tr>
           <td
@@ -151,7 +154,7 @@ export default function Page() {
       );
     }
 
-    return filteredRows.map((r) => (
+    return rows.map((r) => (
       <tr key={r._id} className="border-b border-gray-100">
         {columns.namaCabang.visible && (
           <td className="px-5 py-3 text-sm text-gray-900">
@@ -178,10 +181,25 @@ export default function Page() {
     ));
   };
 
-  const handleExport = () => {
+  const fetchExportRows = async (): Promise<typeof rows | null> => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+      const result = await fetch(`/api/transaction?id=${user._id}&${exportQuery}`);
+      const res = await result.json();
+      if (!result.ok) throw new Error(res?.error || "Failed to load data");
+      return listOf(res.data);
+    } catch (err) {
+      toast.error((err as Error).message);
+      return null;
+    }
+  };
+
+  const handleExport = async () => {
+    const exportRows = await fetchExportRows();
+    if (!exportRows) return;
     const visibleCols = Object.entries(columns).filter(([, col]) => col.visible);
     const headers = visibleCols.map(([, col]) => col.label);
-    const data = filteredRows.map((r) =>
+    const data = exportRows.map((r) =>
       visibleCols.map(([key]) => {
         if (key === "namaCabang") return r.branch?.name || "-";
         if (key === "noInvoice") return r.noInvoice?.toUpperCase() || "-";
@@ -199,7 +217,7 @@ export default function Page() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
-      const result = await fetch(`/api/transaction?id=${user._id}`, {
+      const result = await fetch(`/api/transaction?id=${user._id}&${query}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -220,7 +238,8 @@ export default function Page() {
       const res = await result.json();
       if (!result.ok) throw new Error(res?.error || "Failed to load data");
 
-      setRows(res.data ?? []);
+      setRows(listOf(res.data));
+      setMeta(res.data);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -230,7 +249,8 @@ export default function Page() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   return (
     <AppShell>
@@ -335,15 +355,14 @@ export default function Page() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 text-xs text-gray-500">
-          <div>Page {filteredRows.length} of {rows.length}</div>
-          <div className="flex items-center gap-2">
-            <span>Rows per page</span>
-            <span className="rounded border border-gray-200 bg-white px-2 py-1">
-              20
-            </span>
-          </div>
-        </div>
+        <DataTablePagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
     </AppShell>
   );
